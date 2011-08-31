@@ -1,0 +1,117 @@
+<?xml version="1.0"?>
+<?xml-stylesheet type="text/xsl" href="configuration.xsl"?>
+
+<configuration>
+  
+  <property>
+    <name>hdrs.default.port</name>
+    <value>50337</value>
+    <description>Default port for HDRS nodes.  This setting is used by various HDRS tools
+      like the HDRS Shell when no port is provided.</description>
+  </property>
+  
+  <property>
+    <name>hdrs.rootdir</name>
+    <value>${java.io.tmpdir}${file.separator}${user.name}${file.separator}hdrs-${user.name}-${hdrs.local.node.id}</value>
+    <description>The data directory of a the HDRS node.  In case there are several
+      nodes running on one installation, ${hdrs.local.node.id} can be used to assign
+      each node its own data directory.</description>
+  </property>
+  
+  <property>
+    <name>hdrs.segment.buffer</name>
+    <value>33554432</value>
+    <description>Default segment buffer size in bytes.  Default is 32 MB</description>
+  </property>
+  
+  <property>
+    <name>hdrs.segment.flush.threshold</name>
+    <value>25165824</value>
+    <description>Default segment buffer flush threshold in bytes.
+      This should be at around 80% of the segment buffer.  Default is 24 MB</description>
+  </property>
+  
+  <property>
+    <name>hdrs.segment.split.threshold</name>
+    <value>536870912</value>
+    <description>Default threshold in bytes (on disk, compressed) for when to split 
+      a segment.  This is by default 512 MB</description>
+  </property>
+  
+  <property>
+    <name>hdrs.node.transaction.buffer</name>
+    <value>16777216</value>
+    <description>The transaction buffer size of a node in bytes.  This buffer 
+      holds triples before they are written to the segment buffers. 
+      Default is 16 MB</description>
+  </property>
+  
+  <property>
+    <name>hdrs.rpc.handler.count</name>
+    <value>10</value>
+    <description>The number of RPC threads.  Should be roughly 2 * number of nodes.
+    Default is 10.</description>
+  </property>
+  
+  <property>
+    <name>hdrs.commit.pool.size</name>
+    <value>2</value>
+    <description></description>
+  </property>
+  
+  <property>
+    <name>hdrs.prefetch.pool.size</name>
+    <value>2</value>
+  </property>
+  
+  
+  <property>
+    <name>hdrs.segment.max.files</name>
+    <value>10</value>
+    <description>The maximal number of triple files in a segment before the 
+      segment stalls attempts to flush further files to disk.
+      Default is 10 files</description>
+  </property>
+  
+  <property>
+    <name>hdrs.segment.min.compaction</name>
+    <value>3</value>
+    <description>The minimal number of triple files required for a compaction.
+      The default minimal number is 3.</description>
+  </property>
+  
+  <property>
+    <name>hdrs.segment.max.compaction</name>
+    <value>6</value>
+    <description>The maximal number of triple files in a compaction.
+      Default is 6 files.</description>
+  </property>
+  
+  <property>
+    <name>hdrs.segment.compaction.ratio</name>
+    <value>2.0</value>
+    <description></description>
+  </property>
+  
+  <property>
+    <name>hdrs.segment.compaction.threshold</name>
+    <value>50331648</value>
+    <description>Maximal size of triple files (uncompressed) to be always included
+      in a compaction.  Default is 48 MB</description>
+  </property>
+  
+  
+  
+  <property>
+    <name>hdrs.transaction.size.node</name>
+    <value>1048576</value>
+    <description></description>
+  </property>
+  
+  <property>
+    <name>hdrs.transaction.size</name>
+    <value>8388608</value>
+    <description></description>
+  </property>
+  
+</configuration>
