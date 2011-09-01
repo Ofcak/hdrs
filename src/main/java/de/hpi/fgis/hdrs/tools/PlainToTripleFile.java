@@ -16,10 +16,6 @@
 
 package de.hpi.fgis.hdrs.tools;
 
-import static de.hpi.fgis.hdrs.benchmarks.BenchmarkUtils.newTimer;
-import static de.hpi.fgis.hdrs.benchmarks.BenchmarkUtils.toMB;
-import static de.hpi.fgis.hdrs.benchmarks.BenchmarkUtils.writeToFile;
-
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -28,13 +24,13 @@ import java.util.NavigableSet;
 import java.util.TreeSet;
 
 import de.hpi.fgis.hdrs.Triple;
-import de.hpi.fgis.hdrs.benchmarks.BenchmarkUtils.BandwidthResult;
-import de.hpi.fgis.hdrs.benchmarks.BenchmarkUtils.Timer;
 import de.hpi.fgis.hdrs.compression.Compression;
 import de.hpi.fgis.hdrs.parser.TripleParserFactory;
 import de.hpi.fgis.hdrs.tio.FileSource;
 import de.hpi.fgis.hdrs.tio.TripleScanner;
 import de.hpi.fgis.hdrs.tio.TripleSource;
+import de.hpi.fgis.hdrs.tools.Utils.BandwidthResult;
+import de.hpi.fgis.hdrs.tools.Utils.Timer;
 import de.hpi.fgis.hdrs.triplefile.TripleFileInfo;
 import de.hpi.fgis.hdrs.triplefile.TripleFileReader;
 import de.hpi.fgis.hdrs.triplefile.TripleFileUtils;
@@ -95,7 +91,7 @@ public class PlainToTripleFile {
     System.out.println("  Order      : " + order);
     System.out.println("  Block size : " + blockSize);
     System.out.println("  Comprssion : " + compression);
-    System.out.println("  Split size : " + toMB(nBytesPerSplit) + " MB");
+    System.out.println("  Split size : " + Utils.toMB(nBytesPerSplit) + " MB");
     System.out.println();
     
     List<String> splits = new ArrayList<String>();
@@ -117,7 +113,7 @@ public class PlainToTripleFile {
         splits.add(file.getAbsolutePath());
         
         System.out.print("  Writing out split file #" + splits.size() + "... ");
-        BandwidthResult result = writeToFile(tree, file, order, blockSize, compression);        
+        BandwidthResult result = Utils.writeToFile(tree, file, order, blockSize, compression);        
         System.out.println("done. (" + result.totalBW() + ")");
         
         tree = new TreeSet<Triple>(order.comparator());
@@ -129,7 +125,7 @@ public class PlainToTripleFile {
     
     if (splits.isEmpty()) {
       System.out.print("No file splits, writing target file...");
-      BandwidthResult result = writeToFile(tree, 
+      BandwidthResult result = Utils.writeToFile(tree, 
           new File(targetFilePath), order, blockSize, compression);
       System.out.println("done. (" + result.totalBW() + ")");
     } else {
@@ -140,7 +136,7 @@ public class PlainToTripleFile {
         splits.add(file.getAbsolutePath());
       
         System.out.print("  Writing out last split file #" + splits.size() + "... ");
-        BandwidthResult result = writeToFile(tree, file, order, blockSize, compression);
+        BandwidthResult result = Utils.writeToFile(tree, file, order, blockSize, compression);
         System.out.println("done. (" + result.totalBW() + ")");
       
         tree = null;
@@ -151,7 +147,7 @@ public class PlainToTripleFile {
       
       TripleFileReader[] readers = TripleFileUtils.openAllFiles(splits.toArray(new String[0]));
       
-      Timer timer = newTimer();
+      Timer timer = Utils.newTimer();
       timer.start();
       TripleFileInfo fileInfo = TripleFileUtils.merge(targetFilePath, 
           TripleFileWriter.DEFAULT_BLOCKSIZE, compression, readers);

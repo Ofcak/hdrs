@@ -27,12 +27,13 @@ import java.util.List;
 import org.junit.Test;
 
 import de.hpi.fgis.hdrs.Triple;
-import de.hpi.fgis.hdrs.benchmarks.BenchmarkUtils;
 import de.hpi.fgis.hdrs.tio.NullSink;
 import de.hpi.fgis.hdrs.tio.TripleGenerator;
 import de.hpi.fgis.hdrs.tio.TripleScanner;
 import de.hpi.fgis.hdrs.tio.TripleSink;
 import de.hpi.fgis.hdrs.tio.TripleSource;
+import de.hpi.fgis.hdrs.tools.Utils;
+import de.hpi.fgis.hdrs.tools.Utils.BandwidthResult;
 import de.hpi.fgis.hdrs.triplefile.TripleFileReader;
 import de.hpi.fgis.hdrs.triplefile.TripleFileWriter;
 
@@ -141,7 +142,7 @@ public class BlockingTripleBufferTest {
       while (!buffer.isClosed()) {
         int size = buffer.getSize();
         System.out.println();
-        System.out.print("Size: " + BenchmarkUtils.formatMB(size));
+        System.out.print("Size: " + Utils.formatMB(size));
         if (size < dumpAt) {
           System.out.println("   Sleeping ....");
           try {
@@ -155,14 +156,14 @@ public class BlockingTripleBufferTest {
             File file = File.createTempFile("hdrs_test", "");
             file.deleteOnExit();
             TripleFileWriter writer = new TripleFileWriter(file.getAbsolutePath());
-            BenchmarkUtils.Timer timer = new BenchmarkUtils.Timer();
+            Utils.Timer timer = new Utils.Timer();
             
             timer.start();
             buffer.dumpSnapshot(writer, false);
             writer.close();
             timer.stop();
             
-            BenchmarkUtils.BandwidthResult res = new BenchmarkUtils.BandwidthResult(
+            BandwidthResult res = new BandwidthResult(
                   writer.getFileInfo(), timer);
             System.out.println(res.totalBW());
           } catch (IOException e) {
