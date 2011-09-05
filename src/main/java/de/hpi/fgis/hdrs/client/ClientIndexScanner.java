@@ -53,14 +53,17 @@ public class ClientIndexScanner extends TripleScanner {
   ClientIndexScanner(Router router, Triple.COLLATION index, Triple pattern,
       boolean filterDeletes, Triple rangeStart, Triple rangeEnd) 
   throws IOException {
+    if (null == rangeStart || null == rangeEnd) {
+      throw new IllegalArgumentException("range start and end cannot be null");
+    }
     this.router = router;
     this.index = index;
     this.pattern = pattern;
     this.filterDeletes = filterDeletes;
     this.rangeEnd = rangeEnd;
     // if rangeStart is after pattern, we seek there.
-    // otherwise, we seek to pattern.
-    openScanner(null != pattern && 0 < index.magicComparator().compare(rangeStart, pattern) 
+    // otherwise, we seek to pattern. (unless pattern is null)
+    openScanner(null == pattern || 0 < index.magicComparator().compare(rangeStart, pattern) 
         ? rangeStart : pattern);
   }
   
