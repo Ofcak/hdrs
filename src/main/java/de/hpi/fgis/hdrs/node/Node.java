@@ -1713,7 +1713,8 @@ public class Node implements Runnable, NodeProtocol, SegmentIdGenerator, Segment
             Configuration.DEFAULT_NODE_TRANSACTION_BUFFER) 
             - transactionMemPool.availablePermits(),
         segments.size(),
-        transactions.size());
+        transactions.size(),
+        scanners.size());
   }
 
   

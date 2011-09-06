@@ -30,17 +30,19 @@ public class NodeStatus implements Writable {
   
   int nSegments;
   int nTransactions;
+  int nScanners;
   
   
   public NodeStatus() {}
   
   public NodeStatus(long heapspace, long segmentBuffer, int transactionBuffer,
-      int nSegments, int nTransactions) {
+      int nSegments, int nTransactions, int nScanners) {
     this.heapspace = heapspace;
     this.segmentBuffer = segmentBuffer;
     this.transactionBuffer = transactionBuffer;
     this.nSegments = nSegments;
     this.nTransactions = nTransactions;
+    this.nScanners = nScanners;
   }
   
   public long getHeapSpace() {
@@ -63,6 +65,10 @@ public class NodeStatus implements Writable {
     return nTransactions;
   }
   
+  public int getNumberOfScanners() {
+    return nScanners;
+  }
+  
   @Override
   public void readFields(DataInput in) throws IOException {
     heapspace = in.readLong();
@@ -70,6 +76,7 @@ public class NodeStatus implements Writable {
     transactionBuffer = in.readInt();
     nSegments = in.readInt();
     nTransactions = in.readInt();
+    nScanners = in.readInt();
   }
 
   @Override
@@ -79,6 +86,7 @@ public class NodeStatus implements Writable {
     out.writeInt(transactionBuffer);
     out.writeInt(nSegments);
     out.writeInt(nTransactions);
+    out.writeInt(nScanners);
   }
 
   

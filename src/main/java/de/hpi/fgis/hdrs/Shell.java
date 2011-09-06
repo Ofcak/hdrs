@@ -448,7 +448,7 @@ public class Shell {
       out.println("Triplefiles:");
       
       out.println(String.format("%3s %5s %6s %6s %6s %1s %5s %s",
-          '#', "MB", "u.MB", "t.MB", "Idx.MB", ' ', "#T", "Compression"));
+          '#', "c.MB", "u.MB", "t.MB", "Idx.MB", ' ', "#T", "Compression"));
       for (int i=0; i<segment.getFileInfo().length; ++i) {
         TripleFileInfo info = segment.getFileInfo()[i];
         out.println(String.format("%3d %5.1f %6.1f %6.1f %6.3f %1s %5s %s",
@@ -685,14 +685,15 @@ public class Shell {
     @Override
     void run(String params) throws IOException {
       NodeStatus status = proxy().getNodeStatus();
-      out.println(String.format("Peer %2d: %2d S %8.2f MB heap %7.2f MB buf " +
-      		"%6.2f MB TXbuf %3d TX",
+      out.println(String.format("Peer %2d: %3d S %7.2f MB buf | %8.2f MB heap | " +
+      		"%2d T %5.2f MB | %2d Sc",
       		peer.getId(),
       		status.getNumberOfSegments(),
+      		LogFormatUtil.MB(status.getSegmentBuffer()),
           LogFormatUtil.MB(status.getHeapSpace()),
-          LogFormatUtil.MB(status.getSegmentBuffer()),
+          status.getNumberOfTransactions(),
           LogFormatUtil.MB(status.getTransactionBuffer()),
-          status.getNumberOfTransactions()));
+          status.getNumberOfScanners()));
     }
     @Override
     String info() {
