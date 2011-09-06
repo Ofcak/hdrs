@@ -68,33 +68,81 @@ public class TripleInputFormat extends InputFormat<NullWritable, Triple> impleme
     return conf;
   }
   
+  @Override
+  protected void finalize() throws Throwable {
+    try {
+      if (null != client) {
+        client.close();
+      }
+    } finally {
+      super.finalize();
+    }
+  }
   
+  /**
+   * Set the address and port of the HDRS store to read from
+   * for the provided job.
+   * @param job
+   * @param address An address string of the form "address[:port]"
+   */
   public static void setStoreAddress(Job job, String address) {
     org.apache.hadoop.conf.Configuration conf = job.getConfiguration();
     conf.set(STORE_ADDRESS, address);
   }
   
-  
+  /**
+   * <p>Set the index to read from for the provided job.
+   * <p>Note the index must be present in the HDRS store.
+   * @param job
+   * @param index  The index (e.g. "SPO")
+   */
   public static void setIndex(Job job, String index) {
     org.apache.hadoop.conf.Configuration conf = job.getConfiguration();
     conf.set(INPUT_INDEX, index);
   }
   
+  /**
+   * <p>Set the aggregation level "2" for logical input splits.
+   * This means, given SPO collation, triple with the same subject S
+   * and predicate P are guaranteed to fall into one input split 
+   * (that is, they are not scattered across several input splits).
+   * @param job
+   */
   public static void setAggregationLevel2(Job job) {
     org.apache.hadoop.conf.Configuration conf = job.getConfiguration();
     conf.setInt(AGGREGATION_LEVEL, 2);
   }
   
+  /**
+   * <p>Set the aggregation level "1" for logical input splits.
+   * This means, given SPO collation, triple with the same subject S
+   * are guaranteed to fall into one input split (that is, they
+   * are not scattered across several input splits).
+   * @param job
+   */
   public static void setAggregationLevel1(Job job) {
     org.apache.hadoop.conf.Configuration conf = job.getConfiguration();
     conf.setInt(AGGREGATION_LEVEL, 1);
   }
   
+  /**
+   * <p>Disable input split triple aggregation (no "logical splits).
+   * This means the index (or index part) to be read is broken up 
+   * at arbitrary positions (at segment borders). 
+   * <p>This is the default for HDRS MapReduce jobs.
+   * @param job
+   */
   public static void setNoAggregation(Job job) {
     org.apache.hadoop.conf.Configuration conf = job.getConfiguration();
     conf.setInt(AGGREGATION_LEVEL, 3);
   }
   
+  /**
+   * Set a pattern to be matched when reading the index of this
+   * job.
+   * @param job
+   * @param pattern  The triple pattern to be matched.
+   */
   public static void setPattern(Job job, Triple pattern) {
     org.apache.hadoop.conf.Configuration conf = job.getConfiguration();
     String s = pattern.getSubject();

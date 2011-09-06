@@ -59,6 +59,12 @@ implements Configurable {
     return conf;
   }
   
+  /**
+   * Set the address and port of the HDRS store to be written 
+   * for the provided job.
+   * @param job
+   * @param address An address string of the form "address[:port]"
+   */
   public static void setStoreAddress(Job job, String address) {
     org.apache.hadoop.conf.Configuration conf = job.getConfiguration();
     conf.set(TripleInputFormat.STORE_ADDRESS, address);
@@ -66,16 +72,17 @@ implements Configurable {
   
   /**
    * <p>Set output indexes to write.  Takes a comma separated string of
-   * indexes, eg. "SPO,POS.OSP".
+   * indexes, e.g. "SPO,POS,OSP" (no spaces).
+   * 
+   * <p>Note that all indexes specified must be present in the HDRS store.
    * 
    * <p>If this option is not set, all indexes present in the store 
-   * will be written.
+   * will be written (this is the default).
    */
   public static void setOutputIndexes(Job job, String indexes) {
     org.apache.hadoop.conf.Configuration conf = job.getConfiguration();
     conf.set(OUTPUT_INDEXES, indexes);
   }
-  
   
   private static Set<Triple.COLLATION> getOutputIndexes(Configuration conf) {
     String str = conf.get(OUTPUT_INDEXES);
