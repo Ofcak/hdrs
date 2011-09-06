@@ -86,4 +86,29 @@ public class BTCParser implements TripleParser<String> {
   }
   
   
+  public static Triple removeContext(Triple t) {
+    byte[] buf = t.getBuffer();
+    if ('>' == buf[t.getObjectOffset()+t.getObjectLength()-1]) {
+      int pos = t.getObjectOffset()+t.getObjectLength()-1;
+      while (' ' != buf[pos]) {
+        pos--;
+        if (t.getObjectOffset() == pos) {
+          return t.copy();
+        }
+      }
+      int olen = pos - t.getObjectOffset();
+      
+      byte[] nbuf = new byte[t.getSubjectLength()+t.getPredicateLength()+olen];
+      System.arraycopy(buf, t.getOffset(), nbuf, 0, t.getSubjectLength());
+      System.arraycopy(buf, t.getPredicateOffset(), nbuf, t.getSubjectLength(), 
+          t.getPredicateLength());
+      System.arraycopy(buf, t.getObjectOffset(), nbuf, 
+          t.getSubjectLength()+t.getPredicateLength(), olen);
+      return Triple.newInstance(nbuf, 0, t.getSubjectLength(), t.getPredicateLength(), 
+          olen, t.getMultiplicity());
+    }
+    return t.copy(); 
+  }
+  
+  
 }

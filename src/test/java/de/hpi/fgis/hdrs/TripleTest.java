@@ -20,7 +20,15 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
+import java.io.IOException;
+
 import org.junit.Test;
+
+import de.hpi.fgis.hdrs.parser.BTCParser;
 
 public class TripleTest {
 
@@ -117,8 +125,23 @@ public class TripleTest {
   
   
   @Test
-  public void testMagicTriple() {
+  public void testMagicTriple() throws IOException {
     assertTrue(Triple.MAGIC_TRIPLE.isMagic());
+    assertEquals(Triple.MAGIC_TRIPLE, Triple.MAGIC_TRIPLE);
+    
+    
+    ByteArrayOutputStream bout = new ByteArrayOutputStream(64*1024);
+    DataOutputStream out = new DataOutputStream(bout);
+    
+    Triple.writeTriple(out, Triple.MAGIC_TRIPLE);
+    
+    out.close();
+    
+    ByteArrayInputStream bin = new ByteArrayInputStream(bout.toByteArray());
+    DataInputStream in = new DataInputStream(bin);
+    
+    assertEquals(Triple.readTriple(in), Triple.MAGIC_TRIPLE);
+    
   }
   
   
@@ -129,6 +152,32 @@ public class TripleTest {
     assertEquals(t.clip(Triple.COLLATION.SPO, 5), Triple.newTriple("12345", "", ""));
     assertEquals(t.clip(Triple.COLLATION.SPO, 2), Triple.newTriple("12", "", ""));
     assertEquals(t.clip(Triple.COLLATION.SPO, 8), Triple.newTriple("12345", "67", "8"));
+  }
+  
+ 
+  @Test 
+  public void testContextRemoval() {
+    assertEquals(
+        Triple.newTriple("TestSubject", "TestPredicate", "TestObject", 1),
+        BTCParser.removeContext(
+            Triple.newTriple("TestSubject", "TestPredicate", "TestObject", 1)));
+    
+    assertEquals(
+        Triple.newTriple("TestSubject", "TestPredicate", "TestObject", 1),
+        BTCParser.removeContext(
+            Triple.newTriple("TestSubject", "TestPredicate", "TestObject <asd>", 1)));
+    
+    assertEquals(
+        Triple.newTriple("TestSubject", "TestPredicate", "<asd>", 1),
+        BTCParser.removeContext(
+            Triple.newTriple("TestSubject", "TestPredicate", "<asd>", 1)));
+    
+    byte[] buf = "   TestSubject TestPredicate TestObject <asd>   ".getBytes();
+    Triple t = Triple.newInstance(buf, 3, (short) 11, 15, (short) 13, 29, 16, 1);
+    
+    assertEquals(
+        Triple.newTriple("TestSubject", "TestPredicate", "TestObject", 1),
+        BTCParser.removeContext(t));
   }
   
   
