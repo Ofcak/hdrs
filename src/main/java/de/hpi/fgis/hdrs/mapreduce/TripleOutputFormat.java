@@ -44,6 +44,13 @@ implements Configurable {
   
   @Override
   public void setConf(org.apache.hadoop.conf.Configuration conf) {
+    // we need to disable speculative execution
+    // otherwise hadoop starts killing tasks, which is not
+    // at all a good idea since it could possibly leave
+    // the store in an inconsistent state.
+    conf.setBoolean("mapred.map.tasks.speculative.execution", false);
+    conf.setBoolean("mapred.reduce.tasks.speculative.execution", false);
+    
     this.conf = new Configuration(conf);
   }
   
