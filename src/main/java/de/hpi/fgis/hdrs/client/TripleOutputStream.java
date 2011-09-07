@@ -215,7 +215,7 @@ public class TripleOutputStream implements TripleSink, Flushable, Closeable {
       
       if (!tryFlush()) {
         // we have a problem.
-        LOG.info("Tranaction failed (try #" + tries++ + ")" +
+        LOG.info("Transaction failed (try #" + tries++ + ")" +
             (null != abortedSegment ? " couldn't write " + abortedSegment : ""));
      
         abortedTransactions++;

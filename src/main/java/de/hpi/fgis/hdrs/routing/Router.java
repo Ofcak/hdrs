@@ -239,7 +239,7 @@ public class Router {
           SegmentCatalog catalog = node.getLocalSegmentCatalog(currentVersion+1);
           syncLocalCatalog = false;
           processSegmentCatalogUpdate(localPeer, catalog);
-          LOG.info("Local segment catalog updated.");
+          LOG.debug("Local segment catalog updated.");
         }
       }
     }
@@ -286,7 +286,7 @@ public class Router {
     
     if (!updates.getUpdates().isEmpty()) {
       processSegmentCatalogUpdates(updates);
-      LOG.info("Anti-Entropy: Received " + updates.getUpdates().size() + " updates from peer "
+      LOG.debug("Anti-Entropy: Received " + updates.getUpdates().size() + " updates from peer "
           + peer);
       return true;
     }
