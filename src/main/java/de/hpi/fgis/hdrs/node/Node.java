@@ -264,6 +264,25 @@ public class Node implements Runnable, NodeProtocol, SegmentIdGenerator, Segment
       }
     }
     
+    /**
+     * This closes the segment, if
+     * 1.) it is ONLINE,
+     * 2.) it is EMPTY (contains no triples)
+     * @return
+     */
+    synchronized boolean closeIfEmpty() {
+      if (!isOnline()) {
+        return false;
+      }
+      synchronized (transactions) {
+        if (!(transactions.isEmpty() && segment.closeIfEmpty())) {
+          return false;
+        }
+        status = SegmentStatus.CLOSED;
+        return true;
+      }
+    }
+    
     boolean isOnline() {
       return status == SegmentStatus.ONLINE;
     }
@@ -939,6 +958,21 @@ public class Node implements Runnable, NodeProtocol, SegmentIdGenerator, Segment
         splitThread.request(r.getSegmentId(), SegmentSplitThread.SPLIT_RETRY_DELAY);
         LOG.info("Postponing split for segment " + sd);
       }
+    // segment could be empty now.  in this case, close and
+    // remove the segment if it is not the root segment (lo triple not magic)
+    } else if (!sd.info.getLowTriple().isMagic()
+        && sd.closeIfEmpty()) {
+      LOG.info("segment " + sd + " became empty after compaction ... removing it");
+      // segment is closed now.  remove it
+      sd.index.updateSegments(sd.info, null, null);
+      // indicate segment catalog update is needed
+      router.localCatalogUpdate();
+      // remove descriptor
+      segmentsLock.writeLock().lock();
+      segments.remove(sd.info.getSegmentId());
+      segmentsLock.writeLock().unlock();
+      // delete segment from disk
+      Segment.deleteSegment(sd.index, sd.info.getSegmentId());
     }
     return removed;
   }
