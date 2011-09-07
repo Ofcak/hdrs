@@ -300,13 +300,6 @@ public class Segment implements TripleSink, SeekableTripleSource, Closeable {
   }
   
   
-  public boolean isEmpty() {
-    synchronized (this) {
-      return files.isEmpty() && 0 == buffer.getSize();
-    }
-  }
-  
-  
   /**
    * Take this segment online.  This opens the segment for writes.
    * All open scanners will be invalidated.
@@ -739,22 +732,6 @@ public class Segment implements TripleSink, SeekableTripleSource, Closeable {
     }
     if (compactionRequested) {
       compactor.removeRequest(getId());
-    }
-  }
-  
-  
-  /**
-   * Try closing this segment without flushing it.  This only 
-   * succeeds if the segment is empty.
-   * @return  True if the segment was closed, false otherwise.
-   */
-  public boolean closeIfEmpty() {
-    synchronized (this) {
-      if (!(files.isEmpty() && buffer.tryClose())) {
-        return false;
-      }
-      closed = true;
-      return true;
     }
   }
   

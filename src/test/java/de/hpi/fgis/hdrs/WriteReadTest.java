@@ -101,71 +101,7 @@ public class WriteReadTest {
   }
   
   
-  @Test
-  public void testWriteDeleteNode() throws IOException, InterruptedException {
-    
-    TripleList triples = new TripleList();
-    TripleGenerator gen = new TripleGenerator();
-    for (int i=0; i<100000; ++i) {
-      triples.add(gen.generate());
-    }
-    
-    Configuration nConf = Configuration.create();
-    nConf.setInt(Configuration.KEY_SEGMENT_BUFFER_SIZE, 512 * 1024);
-    nConf.setInt(Configuration.KEY_SEGMENT_FLUSH_THRESHOLD, 256 * 1024);
-    nConf.setInt(Configuration.KEY_SEGMENT_SPLIT_SIZE, 128 * 1024);
-    
-    Node node = NodeLauncher.createTmpNode(nConf, 51337, Triple.COLLATION.SPO);
-    Thread nodeThread = new Thread(node);
-    nodeThread.start();
-    
-    node.waitOnline();
-    
-    Configuration conf = Configuration.create();
-    
-    Client client = node.getClient(conf);
-    
-    TripleScanner fs = triples.getScanner();
-    
-    TripleOutputStream out = client.getOutputStream();
-    while (fs.next()) {
-      out.add(fs.pop());
-    }
-    out.close();
-    fs.close();
-    
-    fs = triples.getScanner();
-    out = client.getOutputStream();
-    while (fs.next()) {
-      out.add(fs.pop().getDelete());
-    }
-    out.close();
-    fs.close();
-    
-    Thread.sleep(1000);
-    node.requestFlush(0);
-    Thread.sleep(2000);
-    node.requestCompaction(0);
-    Thread.sleep(2000);
-    
-    TripleScanner ss = client.getScanner(client.getIndexes().iterator().next());
-    try {
-      assertTrue(null == ss || !ss.next());
-    } finally {
-    
-      client.close();
-    
-      Thread.sleep(1000);
-      
-      node.shutDown();
-      nodeThread.join();
-    
-      node.delete();
-    }
-  }
-  
-  
-  @Test
+  //@Test
   public void testConcurrentReadWriteNode() throws Throwable {
     
     Configuration nConf = Configuration.create();

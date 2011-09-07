@@ -282,23 +282,6 @@ class BlockingTripleBuffer implements TripleSink, SeekableTripleSource {
     freeBytes.release(lastDumpBytes);
   }
   
-  /**
-   * Try closing this buffer.  This only succeeds if the buffer is empty
-   * and there is no snapshot to be cleared.
-   * @return  True, if buffer was closed, otherwise false.
-   */
-  public boolean tryClose() {
-    lock.writeLock().lock();
-    if (tripleList.isEmpty() && null == snapshot) {
-      closed = true;
-      lock.writeLock().unlock();
-      return true;
-    }
-    lock.writeLock().unlock();
-    return false;
-  }
-  
-  
   @Override
   public COLLATION getOrder() {
     return tripleList.getOrder();
