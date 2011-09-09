@@ -128,6 +128,12 @@ public class Node implements Runnable, NodeProtocol, SegmentIdGenerator, Segment
   
   
   /**
+   * Restart flag
+   */
+  volatile boolean restart = false;
+  
+  
+  /**
    * There are up to 6 indexes (SPO, POS, ...).  Note that not all
    * indexes need to be present in the store.
    */
@@ -681,6 +687,7 @@ public class Node implements Runnable, NodeProtocol, SegmentIdGenerator, Segment
   }
   
   
+  
   Router getRouter() {
     return router;
   }
@@ -1091,7 +1098,7 @@ public class Node implements Runnable, NodeProtocol, SegmentIdGenerator, Segment
   void close() {
     for (SegmentDescriptor sd : segments.values()) {
       try {
-        while (!sd.close()) {
+        while (!sd.close() && !kill) {
           LOG.info("Waiting for " + sd + " to close...");
           try {
             Thread.sleep(1000);
@@ -1142,81 +1149,111 @@ public class Node implements Runnable, NodeProtocol, SegmentIdGenerator, Segment
     mainThread = Thread.currentThread();
     LOG.info("Node " + router.getLocalPeer().toString() + " starting up...");
     
-    startThreads();
-    if (!initialize()) {
-      return;
-    }
+    do {
+      if (restart) {
+        LOG.info("Node " + router.getLocalPeer().toString() + " restarting...");
+        restart = false;
+        kill = false;
+        shutDown = false;
+        reset();
+      }
     
-    // start rpc server
-    try {
-      /*   HADOOP 0.21.0:
-      rpcServer = RPC.getServer(NodeProtocol.class, this, 
-          router.getLocalPeer().getAddress(), 
-          router.getLocalPeer().getPort(),
-          conf.getInt(Configuration.KEY_RPC_HANDLER_COUNT, Configuration.DEFAULT_RPC_HANDLER_COUNT),
-          false, conf, null);*/
-      rpcServer = RPC.getServer(this, 
-          router.getLocalPeer().getAddress(), 
-          router.getLocalPeer().getPort(),
-          conf.getInt(Configuration.KEY_RPC_HANDLER_COUNT, Configuration.DEFAULT_RPC_HANDLER_COUNT),
-          false, conf);
-      rpcServer.start();
-    } catch (IOException ex) {
-      LOG.fatal("Error during rpc server creation." , ex);
-      return;
-    }
+      startThreads();
+      if (!initialize()) {
+        return;
+      }
     
-    // now we're going online
-    online = true;
-    
-    // main loop
-    while (!shutDown) {
+      // start rpc server
       try {
-        Thread.sleep(20 * 1000);
-        //System.out.println("Buffer: " + LogFormatUtil.MB(bufferSize.get()));
+        /*   HADOOP 0.21.0:
+        rpcServer = RPC.getServer(NodeProtocol.class, this, 
+            router.getLocalPeer().getAddress(), 
+            router.getLocalPeer().getPort(),
+            conf.getInt(Configuration.KEY_RPC_HANDLER_COUNT, Configuration.DEFAULT_RPC_HANDLER_COUNT),
+            false, conf, null);*/
+        rpcServer = RPC.getServer(this, 
+            router.getLocalPeer().getAddress(), 
+            router.getLocalPeer().getPort(),
+            conf.getInt(Configuration.KEY_RPC_HANDLER_COUNT, Configuration.DEFAULT_RPC_HANDLER_COUNT),
+            false, conf);
+        rpcServer.start();
+      } catch (IOException ex) {
+        LOG.fatal("Error during rpc server creation." , ex);
+        return;
+      }
+    
+      // now we're going online
+      online = true;
+    
+      // main loop
+      while (!shutDown) {
+        try {
+          Thread.sleep(20 * 1000);
+          //System.out.println("Buffer: " + LogFormatUtil.MB(bufferSize.get()));
+        } catch (InterruptedException ex) {
+          // ignore
+        }
+      }
+    
+      LOG.info("Node " + router.getLocalPeer().toString() + " shutting down...");
+      online = false;
+    
+      stopThreads();
+      close();
+    
+      writeSegmentIdCounter();
+    
+      // wait 1 sec to allow stopper to disconnect
+      try {
+        Thread.sleep(1000);
+      } catch (InterruptedException e) {
+        // ignore
+      }
+      rpcServer.stop();
+      try {
+        rpcServer.join();
       } catch (InterruptedException ex) {
         // ignore
       }
-    }
+      
+    } while (restart); 
     
-    LOG.info("Node " + router.getLocalPeer().toString() + " shutting down...");
-    online = false;
-    
-    stopThreads();
-    if (!kill) {
-      close();
-    }
-    
-    writeSegmentIdCounter();
-    
-    // wait 1 sec to allow stopper to disconnect
-    try {
-      Thread.sleep(1000);
-    } catch (InterruptedException e) {
-      // ignore
-    }
-    rpcServer.stop();
-    try {
-      rpcServer.join();
-    } catch (InterruptedException ex) {
-      // ignore
-    }
   }
 
 
+  // reset all central data structures
+  private void reset() {
+    router.reset();
+    indexes.clear();
+    segments.clear();
+    transactions.clear();
+    fileImports.clear();
+    scanners.clear();
+    
+    transactionMemPool.drainPermits();
+    transactionMemPool.release(conf.getInt(Configuration.KEY_NODE_TRANSACTION_BUFFER, 
+        Configuration.DEFAULT_NODE_TRANSACTION_BUFFER));
+   
+    bufferSize.set(0L);
+  }
+  
 
   @Override
-  public void shutDown() {
-    LOG.info("Triggering node shut down for node " + router.getLocalPeer().toString());
+  public void shutDown(boolean force) {
+    LOG.info("Triggering node shut down for node " + router.getLocalPeer().toString()
+        + ", force = " + force);
+    kill = force;
     shutDown = true;
     mainThread.interrupt();
   }
   
   
   @Override
-  public void kill() {
-    LOG.info("Killing node " + router.getLocalPeer().toString());
-    kill = true;
+  public void restart(boolean force) {
+    LOG.info("Triggering restart for node " + router.getLocalPeer().toString()
+        + ", force = " + force);
+    restart = true;
+    kill = force;
     shutDown = true;
     mainThread.interrupt();
   }

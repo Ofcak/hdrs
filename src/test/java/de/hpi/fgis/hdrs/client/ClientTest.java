@@ -60,7 +60,7 @@ public class ClientTest {
     } catch (InterruptedException e) {
     }
       
-    node.shutDown();
+    node.shutDown(true);
     node.waitDone();
     
     node.delete(); 

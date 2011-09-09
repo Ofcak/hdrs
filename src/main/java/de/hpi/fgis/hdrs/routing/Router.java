@@ -85,6 +85,20 @@ public class Router {
   }
   
   
+  /**
+   * Resets the router.  Deletes all collected segmentation info.
+   */
+  public void reset() {
+    for (Peer peer : peers) {
+      peer.setSegmentCatalog(null);
+    }
+    if (null != localPeer) {
+      localPeer.setSegmentCatalog(new SegmentCatalog());
+    }
+    syncLocalCatalog = true;
+  }
+  
+  
   public Configuration getConf() {
     return conf;
   }

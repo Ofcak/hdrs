@@ -94,7 +94,7 @@ public class WriteReadTest {
     
     Thread.sleep(1000);
       
-    node.shutDown();
+    node.shutDown(true);
     nodeThread.join();
     
     node.delete();
@@ -139,7 +139,7 @@ public class WriteReadTest {
     
     Thread.sleep(1000);
       
-    node.shutDown();
+    node.shutDown(true);
     nodeThread.join();
     
     node.delete();

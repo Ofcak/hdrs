@@ -142,6 +142,7 @@ public class Shell {
     addComand(new Segment(), "segment", "se");
     addComand(new CompactSegment(), "compact");
     addComand(new FlushSegment(), "flush");
+    addComand(new Restart(), "restart");
     addComand(new Shutdown(), "shutdown");
     addComand(new Status(), "status", "st");
     addComand(new SplitSegment(), "split");
@@ -672,12 +673,34 @@ public class Shell {
   private class Shutdown extends PeerCommand {
     @Override
     void run(String params) throws IOException {
-      proxy().shutDown();
+      boolean force = "force".equals(params);
+      proxy().shutDown(force);
       out.println("Peer " + peer + " shutting down...");
+    }
+    @Override
+    String params() {
+      return "[force]";
     }
     @Override
     String info() {
       return "Shutdown selected peer.";
+    }
+  }
+  
+  private class Restart extends PeerCommand {
+    @Override
+    void run(String params) throws IOException {
+      boolean force = "force".equals(params);
+      proxy().restart(force);
+      out.println("Peer " + peer + " restarting...");
+    }
+    @Override
+    String params() {
+      return "[force]";
+    }
+    @Override
+    String info() {
+      return "Restart selected peer.";
     }
   }
   

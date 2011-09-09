@@ -27,13 +27,10 @@ public interface NodeManagementProtocol extends ProtocolVersion {
   /**
    * Shut down this node.
    */
-  void shutDown();
+  void shutDown(boolean force);
   
   
-  /**
-   * Kill node.  May lead to data corruption.
-   */
-  void kill();
+  void restart(boolean force);
   
  
   

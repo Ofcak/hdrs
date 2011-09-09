@@ -66,11 +66,11 @@ public class NodeLauncher {
       thread.start();
     } else if ("stop".equals(args[0])) { // stop
       NodeProtocol node = thisNode.getProxy(conf);
-      node.shutDown();
+      node.shutDown(false);
       RPC.stopProxy(node);
     } else if ("kill".equals(args[0])) {
       NodeProtocol node = thisNode.getProxy(conf);
-      node.kill();
+      node.shutDown(true);
       RPC.stopProxy(node);
     } else {
       throw new IOException("neither start, stop, nor kill specified");
