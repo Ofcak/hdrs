@@ -17,6 +17,7 @@
 package de.hpi.fgis.hdrs.node;
 
 import java.io.IOException;
+import java.net.ConnectException;
 import java.net.UnknownHostException;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
@@ -60,7 +61,11 @@ public class AntiEntropyThread extends Thread {
         // this node can't be reached.  might be a temporary network failure,
         // log a warning
         LOG.warn("Cannot run anti-entropy with peer " + peer + ": unkown host");
+      } catch (ConnectException ex) {
+        LOG.warn("Cannot run anti-entropy with peer " + peer + ": cannot connect");
       } catch (IOException ex) {
+        LOG.warn("Anti-entropy error.", ex);
+      } catch (Throwable ex) {
         LOG.fatal("Anti-entropy failure.", ex);
         quit();
       }
