@@ -48,12 +48,20 @@ import de.hpi.fgis.hdrs.triplefile.TripleFileReader;
 public class Loader {
   
   static final Log LOG = LogFactory.getLog(Loader.class);
-  static final String usage = "Load <peer address> [dbqztc] <filename/dirname>";
+  static final String usage = "Load <store address> [-dztcbq] <filename/dirname>";
+  static final String options = "Options:\n" +
+  		" d - load entire directory of files\n" +
+  		" z - extract file(s) using GZIP\n" +
+  		" c - append context to object (if present)\n" +
+  		" b - benchmark load operation\n" +
+  		" q - do not show live progress information (quiet)\n";
+  		
 
   public static void main(String[] args) throws IOException {
     
     if (2 > args.length) {
       System.out.println(usage);
+      System.out.println(options);
       System.exit(1);
     }
     
