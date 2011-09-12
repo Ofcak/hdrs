@@ -33,10 +33,10 @@ public class Example {
     // READING / SCANNING
     //
     
-    // full index scan of SPO
+    // full index scan of the SPO index
     TripleScanner scanner = client.getScanner(Triple.COLLATION.SPO);
        
-    // pattern scan on SPO
+    // alternatively: pattern scan on the SPO index
     //TripleScanner scanner = client.getScanner(Triple.COLLATION.SPO,
     //    Triple.newPattern("<http://sws.geonames.org/581166/>", null, null));    
         
@@ -46,14 +46,20 @@ public class Example {
       System.out.println(t);
     }
     
+    // close the scanner to release server-side resources.
     scanner.close();
     
     //
     // WRITING
     //
     
+    // get new triple output stream.  this stream writes to all indexes of the store.
     TripleOutputStream out = client.getOutputStream();
+    
     out.add(Triple.newTriple("subject", "predicate", "object"));
+    // ... write more triples ...
+    
+    // it is important to close the output stream.
     out.close();
     
     
