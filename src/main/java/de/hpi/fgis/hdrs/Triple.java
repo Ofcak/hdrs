@@ -1142,10 +1142,12 @@ public class Triple implements Writable {
   }
   
   
-  private static class ScatteredTriple extends Triple {
+  static class ScatteredTriple extends Triple {
     
-    private final int predicateOffset;
-    private final int objectOffset;
+    private int predicateOffset;
+    private int objectOffset;
+    
+    ScatteredTriple() {}
     
     private ScatteredTriple(final byte[] buf, int offset, short slen, int pOffset, short plen, 
         int oOffset, int olen, int multiplicity) {
@@ -1178,6 +1180,13 @@ public class Triple implements Writable {
     public Triple clone() {
       return new ScatteredTriple(buffer, offset, Slen, predicateOffset, 
           Plen, objectOffset, Olen, multiplicity);
+    }
+    
+    @Override
+    public void readFields(DataInput in) throws IOException {
+      super.readFields(in);
+      predicateOffset = super.getPredicateOffset();
+      objectOffset = super.getObjectOffset();
     }
     
   }

@@ -112,7 +112,7 @@ public class TripleTest {
   
   
   @Test
-  public void testScatteredTriple() {
+  public void testScatteredTriple() throws IOException {
     
     byte[] buf = "   TestSubject TestPredicate TestObject   ".getBytes();
     Triple t = Triple.newInstance(buf, 3, (short) 11, 15, (short) 13, 29, 10, 1);
@@ -121,6 +121,22 @@ public class TripleTest {
     assertEquals(t, c);
     assertEquals(c, t.copy());
     assertEquals(c, t.clone());
+    
+    
+    // test serialization 
+    ByteArrayOutputStream bout = new ByteArrayOutputStream(64*1024);
+    DataOutputStream out = new DataOutputStream(bout);
+    
+    t.write(out);
+    
+    out.close();
+    
+    ByteArrayInputStream bin = new ByteArrayInputStream(bout.toByteArray());
+    DataInputStream in = new DataInputStream(bin);
+    
+    Triple st = new Triple.ScatteredTriple();
+    st.readFields(in);
+    assertEquals(t, st);
   }
   
   
