@@ -1850,6 +1850,7 @@ public class Node implements Runnable, NodeProtocol, SegmentIdGenerator, Segment
         
         if (filterDeletes) {
           if (t.isDelete()) {
+            scanner.pop();
             continue;
           }
         }
