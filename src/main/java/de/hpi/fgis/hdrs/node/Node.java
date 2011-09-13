@@ -1832,11 +1832,11 @@ public class Node implements Runnable, NodeProtocol, SegmentIdGenerator, Segment
       return timestamp;
     }
     
-    synchronized ScanResult next(int limit) throws IOException {
+    ScanResult next(int limit) throws IOException {
       return next(limit, false);
     }
     
-    synchronized ScanResult next(int limit, boolean isPrefetch) throws IOException {
+    ScanResult next(int limit, boolean isPrefetch) throws IOException {
       
       if (!isPrefetch && null != prefetch) {
         try {
@@ -1880,7 +1880,7 @@ public class Node implements Runnable, NodeProtocol, SegmentIdGenerator, Segment
         
         if (filterDeletes) {
           if (t.isDelete()) {
-        scanner.pop();
+            scanner.pop();
             continue;
           }
         }
@@ -1910,7 +1910,7 @@ public class Node implements Runnable, NodeProtocol, SegmentIdGenerator, Segment
       this.prefetch = prefetch;
     }
     
-    synchronized void close() throws IOException {
+    void close() throws IOException {
       scanner.close();
       scanner = null;
     }
