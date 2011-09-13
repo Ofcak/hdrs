@@ -75,6 +75,9 @@ public class Configuration extends org.apache.hadoop.conf.Configuration {
   public static final String KEY_TRANSACTION_SIZE = "hdrs.transaction.size";
   public static final int DEFAULT_TRANSACTION_SIZE = 8 * DEFAULT_TRANSACTION_SIZE_NODE;
   
+  public static final String KEY_SCANNER_TIMEOUT = "hdrs.scanner.timeout";
+  public static final long DEFAULT_SCANNER_TIMEOUT = 10 * 60 * 1000; // 10 min
+  
   private Configuration(boolean b) {
     super(b);
   }

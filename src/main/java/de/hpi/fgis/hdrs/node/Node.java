@@ -714,7 +714,7 @@ public class Node implements Runnable, NodeProtocol, SegmentIdGenerator, Segment
     SegmentDescriptor sd = getSegmentDescriptor(segmentId);
     if (!sd.canBeSplit()) {
       LOG.info("Segment cannot be split because it contains at least one " +
-      		"half-file.  Need compaction first.");
+          "half-file.  Need compaction first.");
       return true; // true = don't try again
     }
     if (!sd.prepareSplit()) {
@@ -1278,6 +1278,24 @@ public class Node implements Runnable, NodeProtocol, SegmentIdGenerator, Segment
       LOG.warn("Interrupted while waiting for node main thread to finish");
     }
   }
+  
+  
+  /* under construction....
+  private void maintenance() {
+    
+    long timeout = conf.getLong(Configuration.KEY_SCANNER_TIMEOUT, 
+        Configuration.DEFAULT_SCANNER_TIMEOUT);
+    long now = System.currentTimeMillis();
+    
+    synchronized (scanners) {
+      for (SegmentScanner scanner : scanners.values()) {
+        if (now > scanner.getTimestamp() + timeout) {
+          
+        }
+      }
+    }
+    
+  }*/
 
 
   // NOT NEEDED IN HADOOP 0.21.0
@@ -1777,12 +1795,13 @@ public class Node implements Runnable, NodeProtocol, SegmentIdGenerator, Segment
     
     private final long id;
     private final SegmentDescriptor sd;
-    private final TripleScanner scanner;
+    private TripleScanner scanner;
     private final Triple pattern;
+    private final boolean filterDeletes;
+    
+    private volatile long timestamp = System.currentTimeMillis();
     
     private Future<ScanResult> prefetch = null;
-    
-    private final boolean filterDeletes;
     
     SegmentScanner(long id, SegmentDescriptor sd, TripleScanner scanner, 
         boolean filterDeletes) {
@@ -1802,11 +1821,22 @@ public class Node implements Runnable, NodeProtocol, SegmentIdGenerator, Segment
       return id;
     }
     
-    ScanResult next(int limit) throws IOException {
+    /**
+     * Update this scanner's timestamp.
+     */
+    void touch() {
+      timestamp = System.currentTimeMillis();
+    }
+    
+    long getTimestamp() {
+      return timestamp;
+    }
+    
+    synchronized ScanResult next(int limit) throws IOException {
       return next(limit, false);
     }
     
-    ScanResult next(int limit, boolean isPrefetch) throws IOException {
+    synchronized ScanResult next(int limit, boolean isPrefetch) throws IOException {
       
       if (!isPrefetch && null != prefetch) {
         try {
@@ -1850,7 +1880,7 @@ public class Node implements Runnable, NodeProtocol, SegmentIdGenerator, Segment
         
         if (filterDeletes) {
           if (t.isDelete()) {
-            scanner.pop();
+        scanner.pop();
             continue;
           }
         }
@@ -1880,8 +1910,13 @@ public class Node implements Runnable, NodeProtocol, SegmentIdGenerator, Segment
       this.prefetch = prefetch;
     }
     
-    void close() throws IOException {
+    synchronized void close() throws IOException {
       scanner.close();
+      scanner = null;
+    }
+    
+    boolean isClosed() {
+      return null == scanner;
     }
     
   }
@@ -1915,8 +1950,12 @@ public class Node implements Runnable, NodeProtocol, SegmentIdGenerator, Segment
     synchronized (scanners) {
       scanner = scanners.get(Long.valueOf(scannerId));
     }
-    if (null == scanner) {
-      throw new IOException("Unknown scanner");
+    if (null != scanner) {
+      scanner.touch();
+      if (scanner.isClosed()) {
+        // the maintenance thread just closed it...
+        scanner = null;
+      }
     }
     return scanner;
   }
@@ -1925,9 +1964,11 @@ public class Node implements Runnable, NodeProtocol, SegmentIdGenerator, Segment
   @Override
   public void close(long scannerId) throws IOException {
     SegmentScanner scanner = getScanner(scannerId);
-    scanner.close();
-    synchronized (scanners) {
-      scanners.remove(scanner.getId());
+    if (null != scanner) {
+      scanner.close();
+      synchronized (scanners) {
+        scanners.remove(scanner.getId());
+      }
     }
   }
 
@@ -1935,6 +1976,9 @@ public class Node implements Runnable, NodeProtocol, SegmentIdGenerator, Segment
   @Override
   public ScanResult next(long scannerId, int limit) throws IOException {
     SegmentScanner scanner = getScanner(scannerId);
+    if (null == scanner) {
+      return ScanResult.EXPIRED;
+    }
     ScanResult result = scanner.next(limit);
     if (result.isClosed()) {
       synchronized (scanners) {

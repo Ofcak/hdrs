@@ -20,6 +20,7 @@ import java.io.IOException;
 
 import de.hpi.fgis.hdrs.Triple;
 import de.hpi.fgis.hdrs.Triple.COLLATION;
+import de.hpi.fgis.hdrs.client.ClientSegmentScanner.ScannerTimeoutException;
 import de.hpi.fgis.hdrs.routing.Router;
 import de.hpi.fgis.hdrs.routing.SegmentInfo;
 import de.hpi.fgis.hdrs.tio.TripleScanner;
@@ -29,6 +30,7 @@ public class ClientIndexScanner extends TripleScanner {
   private final Router router;
   private final Triple.COLLATION index;
   private final Triple pattern;
+  private final Triple rangeStart;
   private final Triple rangeEnd;
   private final boolean filterDeletes;
   
@@ -41,12 +43,8 @@ public class ClientIndexScanner extends TripleScanner {
   ClientIndexScanner(Router router, Triple.COLLATION index, Triple pattern, 
       boolean filterDeletes) 
   throws IOException {
-    this.router = router;
-    this.index = index;
-    this.pattern = pattern;
-    this.filterDeletes = filterDeletes;
-    this.rangeEnd = Triple.MAGIC_TRIPLE;
-    openScanner(pattern);
+    this(router, index, pattern, filterDeletes, 
+        Triple.MAGIC_TRIPLE, Triple.MAGIC_TRIPLE);
   }
   
   
@@ -60,11 +58,18 @@ public class ClientIndexScanner extends TripleScanner {
     this.index = index;
     this.pattern = pattern;
     this.filterDeletes = filterDeletes;
+    this.rangeStart = rangeStart;
     this.rangeEnd = rangeEnd;
+    
+    openScanner(getStartTriple());
+  }
+  
+  
+  private Triple getStartTriple() {
     // if rangeStart is after pattern, we seek there.
     // otherwise, we seek to pattern. (unless pattern is null)
-    openScanner(null == pattern || 0 < index.magicComparator().compare(rangeStart, pattern) 
-        ? rangeStart : pattern);
+    return null == pattern || 0 < index.magicComparator().compare(rangeStart, pattern) 
+        ? rangeStart : pattern;
   }
   
   
@@ -74,12 +79,23 @@ public class ClientIndexScanner extends TripleScanner {
   }
 
   
+  private boolean tryNext() throws IOException {
+    try {
+      return scanner.next();
+    } catch (ScannerTimeoutException ex) {
+      Client.LOG.info("Scanner timeout. Reopening scanner...");
+      openScanner(prev == null ? getStartTriple() : prev);
+      return scanner.next();
+    }
+  }
+  
+  
   @Override
   protected Triple nextInternal() throws IOException {
-    if(scanner==null) {
-	  return null;
+    if (scanner == null) {
+      return null;
     }
-    while (!scanner.next()) {
+    while (!tryNext()) {
       Triple seek = null;
       
       if (scanner.isDone()) {
@@ -87,7 +103,7 @@ public class ClientIndexScanner extends TripleScanner {
         close();
         return null;
       } else if (scanner.isAborted()) {
-        seek = prev == null ? pattern : prev;
+        seek = prev == null ? getStartTriple() : prev;
       } else {
         // segment is over
         seek = segment.getHighTriple();
@@ -101,6 +117,7 @@ public class ClientIndexScanner extends TripleScanner {
       
       openScanner(seek);
     }
+    
     prev = scanner.pop();
     if (!rangeEnd.isMagic()) {
       if (0 < index.comparator().compare(prev, rangeEnd)) {
@@ -125,20 +142,40 @@ public class ClientIndexScanner extends TripleScanner {
           // ignore
         }
         router.update(router.locateSegment(index, segment));
+        // start over (segment is NOT the previous segment)
+        segment = null;
       }
       
-      // figure out which segment to scan
-      segment = router.locateTriple(index, 
+      // figure out which segments to scan      
+      SegmentInfo[] segments = router.getIndex(index, 
           null == seek ? Triple.MAGIC_TRIPLE : seek);
-    
-      scanner = ClientSegmentScanner.open(router.getConf(), 
-          segment.getSegmentId(), router.locateSegment(index, segment), 
-          pattern, filterDeletes, seek);
+            
+      for (SegmentInfo s : segments) {
+        // take the first segment that we haven't read already.
+        if (null != segment && !segment.getHighTriple().equals(s.getLowTriple())) {
+          continue;
+        }
+        segment = s;
+        scanner = ClientSegmentScanner.open(router.getConf(), 
+            segment.getSegmentId(), router.locateSegment(index, segment), 
+            pattern, filterDeletes, seek);
+        
+        if (null == scanner) {
+          // scanner can only be null if the segment doesn't exist.
+          // need to update the router
+          break;
+        }
+        if (!scanner.isDone()) {
+          // if this scanner is done we need to look at the subsequent
+          // segment
+          break;
+        }
+      }
       
     } while (null == scanner);
   }
   
-
+  
   @Override
   public void close() throws IOException {
     if (scanner != null) {

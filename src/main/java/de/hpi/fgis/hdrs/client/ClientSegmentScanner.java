@@ -106,10 +106,15 @@ public class ClientSegmentScanner extends TripleScanner {
       }
       ScanResult scan = proxy.next(scannerId, 0);
       if (scan.isClosed()) {
-        RPC.stopProxy(proxy);
-        proxy = null;
-        aborted = scan.isAborted();
-        done = scan.isDone();
+        if (scan.isExpired()) {
+          // scanner timed out... 
+          throw new ScannerTimeoutException();
+        } else {
+          RPC.stopProxy(proxy);
+          proxy = null;
+          aborted = scan.isAborted();
+          done = scan.isDone();
+        }
       }
       scanner = scan.getTriples().getScanner();
     }
@@ -132,6 +137,15 @@ public class ClientSegmentScanner extends TripleScanner {
   
   public boolean isDone() {
     return done;
+  }
+  
+  static class ScannerTimeoutException extends IOException {
+
+    /**
+     * 
+     */
+    private static final long serialVersionUID = 3938901464327862954L;
+
   }
 
 }

@@ -629,7 +629,7 @@ public class Shell {
         }
       }
       ClientSegmentScanner scanner = ClientSegmentScanner.open(
-          conf, segmentId, proxy(), null, true, null);
+          conf, segmentId, proxy(), null, false, null);
       while (scanner.next() && 0 <= limit--) {
         Triple t = scanner.pop();
         out.println(t);

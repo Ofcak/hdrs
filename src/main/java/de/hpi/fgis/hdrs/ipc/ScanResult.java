@@ -29,7 +29,8 @@ public class ScanResult implements Writable {
     DONE ((byte) 2), // scanner is done, no more triples
     END ((byte) 3), // scanner is at segment end, possibly more triples in subsequent segment
     ABORTED ((byte) 4), // scanner was aborted due to a segment split, reseek required
-    INVALID ((byte) 5); // segment is invalid (i.e., doesn't exist anymore)
+    INVALID ((byte) 5), // segment is invalid (i.e., doesn't exist anymore)
+    EXPIRED ((byte) 6); // scanner was closed due to timeout
     
     private final byte code;
     
@@ -47,6 +48,7 @@ public class ScanResult implements Writable {
       if (END.code == code) return END;
       if (ABORTED.code == code) return ABORTED;
       if (INVALID.code == code) return INVALID;
+      if (EXPIRED.code == code) return EXPIRED;
       throw new IllegalArgumentException("Invalid scan result state encoding");
     }
   };
@@ -58,12 +60,15 @@ public class ScanResult implements Writable {
   
   public static final ScanResult INVALID;
   public static final ScanResult EMPTY;
+  public static final ScanResult EXPIRED;
   
   static {
     INVALID = new ScanResult();
     INVALID.setInvalid();
     EMPTY = new ScanResult();
     EMPTY.setDone();
+    EXPIRED = new ScanResult();
+    EXPIRED.setExpired();
   }
   
   public ScanResult() {}
@@ -94,6 +99,10 @@ public class ScanResult implements Writable {
     state = State.INVALID;
   }
   
+  public void setExpired() {
+    state = State.EXPIRED;
+  }
+  
   public boolean isClosed() {
     return State.OPEN != state;
   }
@@ -112,6 +121,10 @@ public class ScanResult implements Writable {
   
   public boolean isInvalid() {
     return State.INVALID == state;
+  }
+  
+  public boolean isExpired() {
+    return State.EXPIRED == state;
   }
   
   public long getScannerId() {
