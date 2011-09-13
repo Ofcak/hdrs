@@ -214,80 +214,52 @@ public class Client implements Closeable {
   }
 
   /**
-   * <p>Get a bulk of scanners for an index. The scanners iterate over all 
-   * indexed triples. The sets of triples returned by the different scanners 
-   * are distinct.
-   * </p>
    * <p>
-   * This means the scanners contain distinct triple sets, and the union of all
-   * scanners triple sets is equivalent to the triple set of the whole index
+   * Get a scanners for an index that scans a specific segment.
    * </p>
    * @param index  The index to be scanned
+   * @param segment  The segment to be scanned
    * @return The scanner
    * @throws IOException
    */
-  public TripleScanner[] getSegmentScanners(Triple.COLLATION index) 
+  public TripleScanner getScanner(Triple.COLLATION index, SegmentInfo segment)
   throws IOException {
-    return this.getSegmentScanners(index, null, true);
+    return this.getScanner(index, segment, null, true);
   }
 
   /**
-   * <p>Get a bulk of scanners for an index. The scanners iterate over all 
-   * indexed triples matching a particular pattern. The sets of triples 
-   * returned by the different scanners are distinct.
-   * </p>
    * <p>
-   * This means the scanners contain distinct triple sets, and the union of all
-   * scanners triple sets is equivalent to the triple set of the whole index 
-   * matching the given pattern.
+   * Get a scanners for an index that scans a specific segment.
    * </p>
    * @param index  The index to be scanned
+   * @param segment The segment to be scanned
    * @param pattern The pattern to be matched
    * @return The scanner
    * @throws IOException
    */
-  public TripleScanner[] getSegmentScanners(Triple.COLLATION index, Triple 
-      pattern) throws IOException {
-    return this.getSegmentScanners(index, pattern, true);
+  public TripleScanner getScanner(Triple.COLLATION index, SegmentInfo segment,
+	    Triple pattern)
+  throws IOException {
+    return this.getScanner(index, segment, pattern, true);
   }
 
   /**
-   * <p>Get a bulk of scanners for an index. The scanners iterate over all 
-   * indexed triples matching a particular pattern. The sets of triples 
-   * returned by the different scanners are distinct.
-   * </p>
    * <p>
-   * This means the scanners contain distinct triple sets, and the union of all
-   * scanners triple sets is equivalent to the triple set of the whole index 
-   * matching the given pattern.
-   * </p>
-   * <p>
-   * The scanner can be configured to whether skipping triples having a 
-   * negative multiplicity, or not.
+   * Get a scanners for an index that scans a specific segment.
    * </p>
    * @param index  The index to be scanned
+   * @param segment The segment to be scanned
    * @param pattern The pattern to be matched
-   * @param filterDeletes This flag specifies whether to filter out triples,
-   * or not.
-   * @return The scanner or <code>null</code> if the specified index is not 
-   * available 
+   * @param filterDeletes This flag specifies whether to filter out
+   * triples, or not.
+   * @return The scanner
    * @throws IOException
    */
-  public TripleScanner[] getSegmentScanners(Triple.COLLATION index, 
-      Triple pattern, boolean filterDeletes) throws IOException {
-    SegmentInfo[] segments = this.getIndex(index, pattern);
-    if(segments==null) {
-      return null;
-    }
-    // initialize scanners for all segments
-    TripleScanner[] scanners = new TripleScanner[segments.length];
-    for(int i=0;i<segments.length;i++) {
-      scanners[i] = new ClientIndexScanner(router, index, pattern, 
-          filterDeletes, segments[i].getLowTriple(), 
-          segments[i].getHighTriple());
-    }
-      
-    return scanners;
+  public TripleScanner getScanner(Triple.COLLATION index, SegmentInfo segment, Triple pattern, 
+      boolean filterDeletes) 
+  throws IOException {
+    return new ClientIndexScanner(router, index, pattern, filterDeletes, segment.getLowTriple(), 
+        segment.getHighTriple());
   }
 
   /**
