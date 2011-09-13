@@ -138,11 +138,7 @@ public class Router {
   }
   
   public SegmentInfo[] getIndex(Triple.COLLATION order) {
-    SegmentIndex idx = index.get(order);
-    if (null == idx) {
-      return null;
-    }
-    return idx.toArray();
+    return this.getIndex(order, null);
   }
   
   public SegmentInfo[] getIndex(Triple.COLLATION order, Triple pattern) {
@@ -150,6 +146,10 @@ public class Router {
     if (null == idx) {
       return null;
     }
+    if(pattern==null) {
+      return idx.toArray();
+    }
+    
     return idx.toArray(pattern);
   }
   
