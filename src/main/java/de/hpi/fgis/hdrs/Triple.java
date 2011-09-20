@@ -23,6 +23,9 @@ import java.nio.ByteBuffer;
 import java.util.EnumSet;
 import java.util.Set;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+
 import de.hpi.fgis.hdrs.ipc.Writable;
 
 /**
@@ -44,6 +47,8 @@ import de.hpi.fgis.hdrs.ipc.Writable;
  */
 public class Triple implements Writable {
 
+  static final Log LOG = LogFactory.getLog(Triple.class);
+
   protected byte[] buffer;
   protected int offset;
   
@@ -53,7 +58,14 @@ public class Triple implements Writable {
   
   protected int multiplicity;
   
-  
+  static int ensureNonMagic(int multiplicity) {
+    if(Integer.MIN_VALUE == multiplicity) {
+      LOG.warn("Ensuring non-magic triple multiplicity!");
+      return Integer.MIN_VALUE + 1;
+    }
+    return multiplicity;
+  }
+
   /**
    * Construct a new triple.
    * @param buf The byte buffer holding subject, predicate, and object
@@ -66,7 +78,7 @@ public class Triple implements Writable {
    */
   public static Triple newInstance(final byte[] buf, int offset, short slen, short plen, 
       int olen, int multiplicity) {
-    return new Triple(buf, offset, slen, plen, olen, multiplicity);
+    return new Triple(buf, offset, slen, plen, olen, ensureNonMagic(multiplicity));
   }
   
   //for Writable
@@ -213,13 +225,13 @@ public class Triple implements Writable {
     if (0 == m) {
       return null;
     }
-    t1.multiplicity = m;
+    t1.multiplicity = ensureNonMagic(m);
     return t1;
   }
   
   
   public void merge(Triple otherTriple) {
-    this.multiplicity += otherTriple.multiplicity;
+    this.multiplicity = ensureNonMagic(multiplicity + otherTriple.multiplicity);
   }
   
   
@@ -228,7 +240,12 @@ public class Triple implements Writable {
    */
   public Triple getDelete() {
     Triple del = copy();
-    del.multiplicity *= -1;
+    // FIXME check: one might throw a UnsupportedOperationException int the case of a magic triple?
+    if(isMagic()) {
+      throw new UnsupportedOperationException("Unable to getDelete() of a magic triple \"" + del + "\"!");
+    }
+    // alternative:
+    del.multiplicity = -multiplicity;
     return del;
   }
   
@@ -281,7 +298,7 @@ public class Triple implements Writable {
    */
   public static Triple newTriple(String subject, String predicate, String object, 
       int multiplicity) {
-    return new Triple(subject, predicate, object, multiplicity);
+    return new Triple(subject, predicate, object, ensureNonMagic(multiplicity));
   }
   
   public static Triple newTriple(String subject, String predicate, String object) {
@@ -1114,7 +1131,7 @@ public class Triple implements Writable {
   }
   
   
-  public static Triple newInstance(final byte[] buf, int offset, short slen, int pOffset, 
+  static Triple newInstance(final byte[] buf, int offset, short slen, int pOffset, 
       short plen, int oOffset, int olen, int multiplicity) {
     return new ScatteredTriple(buf, offset, slen, pOffset, plen, oOffset, olen, multiplicity);
   }
@@ -1140,7 +1157,6 @@ public class Triple implements Writable {
     }
     return length1 < 0 && length2 < 0; 
   }
-  
   
   static class ScatteredTriple extends Triple {
     
