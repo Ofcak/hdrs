@@ -193,12 +193,24 @@ public class Node implements Runnable, NodeProtocol, SegmentIdGenerator, Segment
     final Index index;
     Segment segment = null;
     final Map<Long, Transaction> transactions;
+    long timestamp = System.currentTimeMillis();
     
     SegmentDescriptor(SegmentStatus status, SegmentInfo info, Index index) {
       this.status = status;
       this.info = info;
       this.index = index;
       transactions = new HashMap<Long, Transaction>();
+    }
+    
+    void touch() {
+      timestamp = System.currentTimeMillis();
+    }
+    
+    /**
+     * @return  the time since last triples were written to this segment
+     */
+    long getTimestamp() {
+      return timestamp;
     }
     
     /**
@@ -602,6 +614,7 @@ public class Node implements Runnable, NodeProtocol, SegmentIdGenerator, Segment
           scanner.close();
         }
         sd.removeTransaction(this);
+        sd.touch(); // update last written timestamp
       }
       // we're done.
       state = State.COMMITTED;
@@ -1188,11 +1201,12 @@ public class Node implements Runnable, NodeProtocol, SegmentIdGenerator, Segment
       // main loop
       while (!shutDown) {
         try {
-          Thread.sleep(20 * 1000);
-          //System.out.println("Buffer: " + LogFormatUtil.MB(bufferSize.get()));
+          Thread.sleep(5 * 60 * 1000); // 5 minutes
         } catch (InterruptedException ex) {
           // ignore
         }
+        // close expired scanners, transactions
+        maintenance();
       }
     
       LOG.info("Node " + router.getLocalPeer().toString() + " shutting down...");
@@ -1280,7 +1294,6 @@ public class Node implements Runnable, NodeProtocol, SegmentIdGenerator, Segment
   }
   
   
-  /* under construction....
   private void maintenance() {
     
     long timeout = conf.getLong(Configuration.KEY_SCANNER_TIMEOUT, 
@@ -1288,14 +1301,46 @@ public class Node implements Runnable, NodeProtocol, SegmentIdGenerator, Segment
     long now = System.currentTimeMillis();
     
     synchronized (scanners) {
+      List<SegmentScanner> remove = new ArrayList<SegmentScanner>();
       for (SegmentScanner scanner : scanners.values()) {
         if (now > scanner.getTimestamp() + timeout) {
-          
+          scanner.close();
+          remove.add(scanner);
         }
+      }
+      for (SegmentScanner scanner : remove) {
+        scanners.remove(scanner);
+      }
+      if (!remove.isEmpty()) {
+        LOG.info("Node maintenance: " + remove.size() + " expired scanners closed");
       }
     }
     
-  }*/
+    
+  }
+  
+  /**
+   * Called by the flush thread after some time of idling.
+   */
+  @Override
+  public void flushMaintenance() {
+    
+    long delay = conf.getLong(Configuration.KEY_SEGMENT_FLUSH_DELAY, 
+        Configuration.DEFAULT_SEGMENT_FLUSH_DELAY);
+    long now = System.currentTimeMillis();
+    
+    int cnt = 0;
+    segmentsLock.readLock().lock();
+    for (SegmentDescriptor sd : segments.values()) {
+      if (sd.isOnline() && 0 < sd.segment.getBufferSize()
+          && now > sd.getTimestamp() + delay) {
+        flushThread.request(sd.info.getSegmentId());
+        cnt++;
+      }
+    }
+    segmentsLock.readLock().unlock();
+    LOG.info("Flush maintenance: scheduled " + cnt + " segments to be flushed");
+  }
 
 
   // NOT NEEDED IN HADOOP 0.21.0
@@ -1857,51 +1902,54 @@ public class Node implements Runnable, NodeProtocol, SegmentIdGenerator, Segment
       TripleSink out = triples.getWriter();
       
       int count = 0;
-      while (true) {
-        
-        if (!scanner.next()) {
-          if (!sd.isOnline() && !sd.isOpen()) {
-            result.setAborted();
-          } else { 
+      
+      synchronized (this) { // prevent close(), concurrent next()
+        while (true) {
+          
+          if (!scanner.next()) {
+            if (!sd.isOnline() && !sd.isOpen()) {
+              result.setAborted();
+            } else { 
+              scanner.close();
+              result.setEnd();
+            }
+            break;
+          }
+          
+          Triple t = scanner.peek();
+          
+          if (null != pattern
+              && !sd.index.getOrder().comparator().match(t, pattern)) {
             scanner.close();
-            result.setEnd();
+            result.setDone();
+            break;
           }
-          break;
-        }
+          
+          if (filterDeletes) {
+            if (t.isDelete()) {
+              scanner.pop();
+              continue;
+            }
+          }
+          
+          if (!out.add(t)) {
+            // buffer is full
+            if (0 == count) {
+              // large triple
+              return new ScanResult(id, scanner.pop(), sd.index.getOrder());
+            }
+            break;
+          }
+          scanner.pop();
         
-        Triple t = scanner.peek();
-        
-        if (null != pattern
-            && !sd.index.getOrder().comparator().match(t, pattern)) {
-          scanner.close();
-          result.setDone();
-          break;
-        }
-        
-        if (filterDeletes) {
-          if (t.isDelete()) {
-            scanner.pop();
-            continue;
+          count++;
+          if (0 < limit && count == limit) {
+            scanner.close();
+            result.setAborted();
+            break;
           }
         }
-        
-        if (!out.add(t)) {
-          // buffer is full
-          if (0 == count) {
-            // large triple
-            return new ScanResult(id, scanner.pop(), sd.index.getOrder());
-          }
-          break;
-        }
-        scanner.pop();
-        
-        count++;
-        if (0 < limit && count == limit) {
-          scanner.close();
-          result.setAborted();
-          break;
-        }
-      }
+      } // synchronized (this)
       
       return result;
     }
@@ -1910,8 +1958,12 @@ public class Node implements Runnable, NodeProtocol, SegmentIdGenerator, Segment
       this.prefetch = prefetch;
     }
     
-    void close() throws IOException {
-      scanner.close();
+    synchronized void close() {
+      try {
+        scanner.close();
+      } catch (IOException ex) {
+        LOG.error("Error closing segment scanner: ", ex);
+      }
       scanner = null;
     }
     

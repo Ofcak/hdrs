@@ -30,10 +30,12 @@ public abstract class SegmentServiceThread extends Thread implements SegmentServ
 
   static final Log LOG = LogFactory.getLog(SegmentServiceThread.class);
   
-  public static final int POLL_TIMEOUT = 10 * 1000;
-  
-  public static final int RETRY_DELAY = 5 * 1000;
-  
+  /**
+   * After this timeout the service thread will get an opportunity
+   * to do some maintenance work. (every 5 minutes)
+   */
+  public static final int POLL_TIMEOUT = 5 * 60 * 1000;
+    
   
   protected final SegmentServer server;
   

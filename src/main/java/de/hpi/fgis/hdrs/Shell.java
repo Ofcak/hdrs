@@ -783,11 +783,12 @@ public class Shell {
       
       TripleScanner scanner = client.getScanner(index, pattern, false);
       
+      BufferedReader in = new BufferedReader(new InputStreamReader(Shell.this.in));
       int cnt = 0;
       while (scanner.next()) {
         if (++cnt > 100) {
           out.print("more ... ");
-          if ('q' == (char) in.read()) {
+          if (!"".equals(in.readLine())) {
             break;
           }
           cnt = 0;

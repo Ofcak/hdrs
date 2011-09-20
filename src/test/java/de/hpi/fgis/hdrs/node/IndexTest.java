@@ -108,6 +108,9 @@ public class IndexTest {
       public void stop(Throwable t) {
         t.printStackTrace();
       }
+      @Override
+      public void flushMaintenance() {        
+      }
     };
     
     SegmentFlusherThread flusher = new SegmentFlusherThread(server);

@@ -25,6 +25,10 @@ public interface SegmentServer {
 
   boolean flushSegment(long segmentId) throws IOException;
   
+  // after a period of idling (= no flushes), provide
+  // the node with an opportunity to flush some segment(s)
+  void flushMaintenance();
+  
   int compactSegment(Set<CompactionRequest> requests) throws IOException;
   
   boolean splitSegment(long segmentId) throws IOException;

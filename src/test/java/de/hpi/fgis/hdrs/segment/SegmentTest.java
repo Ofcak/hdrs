@@ -66,6 +66,9 @@ public class SegmentTest {
       public void stop(Throwable t) {
         t.printStackTrace();
       }
+      @Override
+      public void flushMaintenance() {        
+      }
     };
     
     SegmentFlusherThread flusher = new SegmentFlusherThread(server);
@@ -222,6 +225,9 @@ public class SegmentTest {
       public void stop(Throwable t) {
         t.printStackTrace();
       }
+      @Override
+      public void flushMaintenance() {        
+      }
     };
     
     WriterThread writer1 = new WriterThread(seg);
@@ -311,6 +317,9 @@ public class SegmentTest {
       public void stop(Throwable t) {
         t.printStackTrace();
       }
+      @Override
+      public void flushMaintenance() {        
+      }
     };
     
     SegmentFlusherThread flusher = new SegmentFlusherThread(server);
@@ -366,6 +375,9 @@ public class SegmentTest {
       public void stop(Throwable t) {
         t.printStackTrace();
       }
+      @Override
+      public void flushMaintenance() {        
+      }
     };
     
     SegmentFlusherThread flusher = new SegmentFlusherThread(server);
@@ -415,6 +427,9 @@ public class SegmentTest {
       @Override
       public void stop(Throwable t) {
         t.printStackTrace();
+      }
+      @Override
+      public void flushMaintenance() {        
       }
     };
     

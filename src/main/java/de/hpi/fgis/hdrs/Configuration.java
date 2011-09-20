@@ -77,6 +77,8 @@ public class Configuration extends org.apache.hadoop.conf.Configuration {
   
   public static final String KEY_SCANNER_TIMEOUT = "hdrs.scanner.timeout";
   public static final long DEFAULT_SCANNER_TIMEOUT = 10 * 60 * 1000; // 10 min
+  public static final String KEY_SEGMENT_FLUSH_DELAY = "hdrs.segment.flush.delay";
+  public static final long DEFAULT_SEGMENT_FLUSH_DELAY = 30 * 60 * 1000; // 30 min
   
   private Configuration(boolean b) {
     super(b);

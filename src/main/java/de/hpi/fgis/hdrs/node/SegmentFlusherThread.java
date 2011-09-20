@@ -43,4 +43,10 @@ public class SegmentFlusherThread extends SegmentServiceThread {
   }
   
   
+  @Override 
+  protected void handle() {
+    server.flushMaintenance();
+  }
+  
+  
 }
