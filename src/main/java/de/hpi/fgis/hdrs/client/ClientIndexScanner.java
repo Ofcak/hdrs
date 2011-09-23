@@ -104,6 +104,9 @@ public class ClientIndexScanner extends TripleScanner {
         return null;
       } else if (scanner.isAborted()) {
         seek = prev == null ? getStartTriple() : prev;
+        // the current will not be the previous segment of the segment
+        // we are going to open.  null it, otherwise we end up in a loop.
+        segment = null;
       } else {
         // segment is over
         seek = segment.getHighTriple();
